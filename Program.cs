@@ -17,6 +17,7 @@ using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Threading;
 
 namespace PSO2JP_Token_Generator
@@ -103,24 +104,24 @@ namespace PSO2JP_Token_Generator
                     SEGAResponse = GetSEGAInfo(true);
                     //Parse the response
                     ResponseCode = SEGAResponse.Result;
-                    if (ResponseCode == 5002)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Incorrect username. Please enter your information again.");
-                        Console.ResetColor();
-                    }
-                    else if (ResponseCode == 5001)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Incorrect password. Please enter your information again.");
-                        Console.ResetColor();
-                    }
-                    else if (ResponseCode != 0)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Unknown error. Please try logging in again.");
-                        Console.ResetColor();
-                    }
+                    switch(ResponseCode){
+						case 0: break;
+						case 5002:
+							Console.ForegroundColor = ConsoleColor.Red;
+							Console.WriteLine("Incorrect username. Please enter your information again.");
+							Console.ResetColor();
+							break;
+						case 5001:
+							Console.ForegroundColor = ConsoleColor.Red;
+							Console.WriteLine("Incorrect password. Please enter your information again.");
+							Console.ResetColor();
+							break;
+						default:
+							Console.ForegroundColor = ConsoleColor.Red;
+							Console.WriteLine("Unknown error ({0}). Please try logging in again.", ResponseCode);
+							Console.ResetColor();
+							break;
+					}
                 } while (ResponseCode != 0);
             }
             Console.ForegroundColor = ConsoleColor.Green;
@@ -134,7 +135,6 @@ namespace PSO2JP_Token_Generator
             Console.WriteLine("\rContinuing in 0 seconds...   ");
             Console.ResetColor();
             File.WriteAllText("temp.tmp", token + "|" + userid);
-            return;
         }
 
         private static void GetUserInfo()
@@ -154,7 +154,8 @@ namespace PSO2JP_Token_Generator
             {
                 Console.WriteLine("Enter your SEGAID password:");
                 //Set the password to nothing
-                password = string.Empty;
+				password = null; // Setting the password to an empty string before writing to it is redundant
+				var passBuilder = new StringBuilder(); // Using a builder is more efficient than creating a new string object for each character
                 ConsoleKey key;
                 //This puts asteriks (*) on the console instead of your text, for security.
                 do
@@ -162,25 +163,28 @@ namespace PSO2JP_Token_Generator
                     var keyInfo = Console.ReadKey(intercept: true);
                     key = keyInfo.Key;
 
-                    if (key == ConsoleKey.Backspace && password.Length > 0)
+                    if (key == ConsoleKey.Backspace && passBuilder.Length > 0)
                     {
                         Console.Write("\b \b");
-                    }
+						passBuilder.Remove(passBuilder.Length - 1, 1);
+					}
                     else if (!char.IsControl(keyInfo.KeyChar))
                     {
                         Console.Write("*");
-                        password += keyInfo.KeyChar;
+						passBuilder.Append(keyInfo.KeyChar);
                     }
                 } while (key != ConsoleKey.Enter);
+
+				password = passBuilder.ToString();
                 if (String.IsNullOrWhiteSpace(password))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("");
+                    Console.WriteLine();
                     Console.WriteLine("You must enter a valid password.");
                     Console.ResetColor();
                 }
             } while (String.IsNullOrWhiteSpace(password));
-            Console.WriteLine("");
+            Console.WriteLine();
         }
 
         private static void GetOTP()
@@ -203,7 +207,7 @@ namespace PSO2JP_Token_Generator
                     Console.ResetColor();
                 }
             } while (String.IsNullOrWhiteSpace(otp) || otp.Length != 6);
-            Console.WriteLine("");
+            Console.WriteLine();
             OTPCodeTries--;
         }
 
