@@ -213,41 +213,37 @@ namespace PSO2JP_Token_Generator
 
         private static TokenResponse GetSEGAInfo(bool DoingOTP = false)
         {
-            HttpWebRequest TokenRequest;
+            string payload;
+            HttpWebRequest TokenRequest = (HttpWebRequest)WebRequest.Create(DoingOTP ? "https://auth.pso2.jp/auth/v1/otpAuth" : "https://auth.pso2.jp/auth/v1/auth");
             if (DoingOTP)
             {
-                TokenRequest = (HttpWebRequest)WebRequest.Create("https://auth.pso2.jp/auth/v1/otpAuth");
+                CredentialsWithOTP otp_credentials = new CredentialsWithOTP
+                {
+                    userId = userid,
+                    token = token,
+                    otp = otp
+                };
+                payload = JsonConvert.SerializeObject(otp_credentials);
             }
             else
             {
-                TokenRequest = (HttpWebRequest)WebRequest.Create("https://auth.pso2.jp/auth/v1/auth");
+                Credentials simple_credentials = new Credentials
+                {
+                    id = username,
+                    password = password
+                };
+                payload = JsonConvert.SerializeObject(simple_credentials);
             }
             TokenRequest.ContentType = "application/json; charset=utf-8";
             TokenRequest.Host = "auth.pso2.jp";
             TokenRequest.UserAgent = "PSO2 Launcher";
             TokenRequest.Method = "POST";
             //Send SEGA your credentials
-            if (DoingOTP)
+            using (var streamWriter = new StreamWriter(TokenRequest.GetRequestStream()))
             {
-                using (var streamWriter = new StreamWriter(TokenRequest.GetRequestStream()))
-                {
-                    string json = "{\"userId\":\"" + userid + "\"," +
-                                    "\"token\":\"" + token + "\"," +
-                                     "\"otp\":\"" + otp + "\"}";
-
-                    streamWriter.Write(json);
-                }
+                streamWriter.Write(payload);
             }
-            else
-            {
-                using (var streamWriter = new StreamWriter(TokenRequest.GetRequestStream()))
-                {
-                    string json = "{\"id\":\"" + username + "\"," +
-                                  "\"password\":\"" + password + "\"}";
 
-                    streamWriter.Write(json);
-                }
-            }
             //Get the response from them
             var response = TokenRequest.GetResponse();
             using (var streamReader = new StreamReader(response.GetResponseStream()))
@@ -256,6 +252,26 @@ namespace PSO2JP_Token_Generator
                 //Return the response back to the main code
                 return JsonSerializer.CreateDefault().Deserialize<TokenResponse>(reader);
             }
+        }
+
+        [JsonObject(MemberSerialization = MemberSerialization.OptIn)]
+        private struct Credentials
+        {
+            [JsonProperty("id")]
+            public string id;
+            [JsonProperty("password")]
+            public string password;
+        }
+
+        [JsonObject(MemberSerialization = MemberSerialization.OptIn)]
+        private struct CredentialsWithOTP
+        {
+            [JsonProperty("userId")]
+            public string userId;
+            [JsonProperty("token")]
+            public string token;
+            [JsonProperty("otp")]
+            public string otp;
         }
 
         [JsonObject(MemberSerialization = MemberSerialization.OptIn)]
