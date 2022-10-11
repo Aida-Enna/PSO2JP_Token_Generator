@@ -4,7 +4,7 @@ BE AWARE that this alternative requires you to put your SEGA ID, password and OT
 
 This is probably the most unsecure and unrecommended way to store your password,
 but if you are fully aware of that and still prefer, like it is my case, to have your account logged in very fastly,
-you need to compile PSO2JP_Token_Generator.exe, replace the one contained in yout PSO2Tweaker folder, and because the Tweaker automatically replace any modified TokenGenerator by the original one, you should edit the Windows security options of the file so it can be executed by all users, but the writing access has to be refused to all users.
+you need to compile PSO2JP_Token_Generator.exe, replace the one contained in your PSO2Tweaker folder, and because the Tweaker automatically replace any modified TokenGenerator by the original one, you should edit the Windows security options of the file so it can be executed by all users, but the writing access has to be refused to all users.
 
 My forked version will create a autoconnect_otp.txt file in which you should write down your credentials.
 
