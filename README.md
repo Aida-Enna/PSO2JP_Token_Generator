@@ -7,6 +7,7 @@ but if you are fully aware of that and still prefer, like it is my case, to have
 you need to compile PSO2JP_Token_Generator.exe, replace the one contained in your PSO2Tweaker folder, and because the Tweaker automatically replace any modified TokenGenerator by the original one, you should edit the Windows security options of the file so it can be executed by all users, but the writing access has to be refused to all users.
 
 My forked version will create a autoconnect_otp.txt file in which you should write down your credentials.
+Note that if you do not fill up the fields in the TXT file, the TokenGenerator will continue work as initially (Asking you to type your information manually)
 
 # PSO2 JP Token Generator
 This is a token generator for the game Phantasy Star Online 2. It takes in a username and password (and optionally OTP code), and then generates a token that can be used with the [PSO2 Tweaker](http://arks-layer.com) to launch the game. When launched in this way, you no longer need to enter your login credentials at the ship selection screen, making logging in and switching characters much less painless.
