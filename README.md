@@ -1,6 +1,6 @@
 This fork allows you to have Aida-Enna's PSO2JP_Token_Generator connect you to your Phantasy Star Online 2 SEGA account automatically.
 
-BE AWARE that this alternative requires you to put your SEGA ID, password and OTP into a text file.
+BE AWARE that MY alternative (a copy of Aida-Enna's source code) requires you to put your SEGA ID, password and OTP into a text file.
 
 This is probably the most unsecure and unrecommended way to store your password,
 but if you are fully aware of that and still prefer, like it is my case, to have your account logged in very fastly,
