@@ -267,24 +267,24 @@ namespace PSO2JP_Token_Generator
             Console.WriteLine("Therefore, for your own safety, you will only be allowed to enter your OTP through this program 5 times.");
             Console.WriteLine("You have " + OTPCodeTries + " more attempt(s) to login via OTP.");
             Console.ResetColor();
-            if (otp_token == null)
-                do
-                {
-                    Console.WriteLine("Enter your SEGAID OTP (" + OTPCodeTries + " attempt(s) remaining):");
-                    otp = Console.ReadLine();
-                    if (String.IsNullOrWhiteSpace(otp) || otp.Length != 6)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("You must enter a valid OTP. (6 characters)");
-                        Console.ResetColor();
-                    }
-                } while (String.IsNullOrWhiteSpace(otp) || otp.Length != 6);
-            else
+            do
             {
-                var tfa = new TwoFactorAuthenticator();
-                otp = tfa.GeneratePINAtInterval(Base32.FromBase32String(otp_token), GetCurrentCounter(DateTime.UtcNow, _epoch, 30), 6);
-                Console.WriteLine(otp);
-            }
+            	Console.WriteLine("Enter your SEGAID OTP (" + OTPCodeTries + " attempt(s) remaining):");
+            	if (otp_token == null)
+            		otp = Console.ReadLine();
+            	else
+            	{
+            		var tfa = new TwoFactorAuthenticator();
+            		otp = tfa.GeneratePINAtInterval(Base32.FromBase32String(otp_token), GetCurrentCounter(DateTime.UtcNow, _epoch, 30), 6);
+            		Console.WriteLine(otp);
+		}
+            	if (String.IsNullOrWhiteSpace(otp) || otp.Length != 6)
+            	{
+            		Console.ForegroundColor = ConsoleColor.Red;
+            		Console.WriteLine("You must enter a valid OTP. (6 characters)");
+            		Console.ResetColor();
+            	}
+            } while (String.IsNullOrWhiteSpace(otp) || otp.Length != 6);
             Console.WriteLine();
             OTPCodeTries--;
         }
