@@ -203,7 +203,7 @@ namespace PSO2JP_Token_Generator
             do
             {
                 Console.WriteLine("Enter your SEGAID username:");
-                if (otp_token == null)
+                if (username == null)
                     username = Console.ReadLine();
                 else
                     Console.WriteLine(username);
@@ -217,11 +217,9 @@ namespace PSO2JP_Token_Generator
             do
             {
                 Console.WriteLine("Enter your SEGAID password:");
-                if (otp_token == null)
+                if (password == null)
                 {
-                    //Set the password to nothing
-                    password = null; // Setting the password to an empty string before writing to it is redundant
-				    var passBuilder = new StringBuilder(); // Using a builder is more efficient than creating a new string object for each character
+                    var passBuilder = new StringBuilder(); // Using a builder is more efficient than creating a new string object for each character
                     ConsoleKey key;
                     //This puts asteriks (*) on the console instead of your text, for security.
                     do
