@@ -19,6 +19,9 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Google.Authenticator;
+using System.Security.Cryptography;
+using System.Globalization;
 
 namespace PSO2JP_Token_Generator
 {
@@ -26,6 +29,7 @@ namespace PSO2JP_Token_Generator
     {
         public static string username;
         public static string password;
+        public static string otp_token;
 
         //Pretty sure the OTP is *always* numbers but let's just play it safe because it -is- SEGA.
         public static string otp;
@@ -33,10 +37,67 @@ namespace PSO2JP_Token_Generator
         public static string token;
         public static string userid;
         public static int ResponseCode;
-        public static int OTPCodeTries = 5;
+        public static int OTPCodeTries = 1; /* Give the OTP one try only, as it is supposed to work directly, and for security reasons if it doesn't. */
+        public static DateTime _epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        public static long GetCurrentCounter(DateTime now, DateTime epoch, int timeStep)
+        {
+            return (long)(now - epoch).TotalSeconds / timeStep;
+        }
+        const int PinLength = 6;
+        static readonly int PinModulo = (int)Math.Pow(10, PinLength);
+
+        /*This is the sample code provided by Michael Petito in this Stack Overflow post: http://stackoverflow.com/questions/6421950/is-there-a-tutorial-on-how-to-implement-google-authenticator-in-net-apps */
+        static string GeneratePin(byte[] key, long counter)
+        {
+            var CounterBytes = BitConverter.GetBytes(counter);
+
+            if (BitConverter.IsLittleEndian)
+            {
+                //spec requires bytes in big-endian order
+                Array.Reverse(CounterBytes);
+            }
+
+            var Hash = new HMACSHA1(key).ComputeHash(CounterBytes);
+            var Offset = Hash[Hash.Length - 1] & 0xF;
+
+            var SelectedBytes = new byte[sizeof(int)];
+            Buffer.BlockCopy(Hash, Offset, SelectedBytes, 0, SelectedBytes.Length);
+
+            if (BitConverter.IsLittleEndian)
+            {
+                //spec interprets bytes in big-endian order
+                Array.Reverse(SelectedBytes);
+            }
+
+            var SelectedInteger = BitConverter.ToInt32(SelectedBytes, 0);
+
+            //remove the most significant bit for interoperability per spec
+            var TruncatedHash = SelectedInteger & 0x7FFFFFFF;
+
+            //generate number of digits for given pin length
+            var Pin = TruncatedHash % PinModulo;
+
+            return Pin.ToString(CultureInfo.InvariantCulture).PadLeft(PinLength, '0');
+        }
 
         private static void Main()
         {
+            if (File.Exists("autoconnect_otp.txt") == false)
+            {
+                File.WriteAllText("autoconnect_otp.txt", "sega_username_here\nsega_password_here\nsega_otp_token_here");
+            }
+            else
+            {
+                string[] info = File.ReadAllLines("autoconnect_otp.txt");
+                if (info.Length >= 1 && info[0] != "sega_username_here")
+                    username = info[0];
+                if (info.Length >= 2 && info[1] != "sega_password_here")
+                    password = info[1];
+                if (info.Length >= 3 && info[2] != "sega_otp_token_here")
+                    otp_token = info[2];
+            }
+
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("This application takes your username and password and generates a token for the Tweaker to start the game with.");
             Console.WriteLine("This will allow you to switch characters without needing to re-enter your username or password.");
@@ -142,7 +203,10 @@ namespace PSO2JP_Token_Generator
             do
             {
                 Console.WriteLine("Enter your SEGAID username:");
-                username = Console.ReadLine();
+                if (username == null)
+                    username = Console.ReadLine();
+                else
+                    Console.WriteLine(username);
                 if (String.IsNullOrWhiteSpace(username))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
@@ -153,29 +217,34 @@ namespace PSO2JP_Token_Generator
             do
             {
                 Console.WriteLine("Enter your SEGAID password:");
-                //Set the password to nothing
-				password = null; // Setting the password to an empty string before writing to it is redundant
-				var passBuilder = new StringBuilder(); // Using a builder is more efficient than creating a new string object for each character
-                ConsoleKey key;
-                //This puts asteriks (*) on the console instead of your text, for security.
-                do
+                if (password == null)
                 {
-                    var keyInfo = Console.ReadKey(intercept: true);
-                    key = keyInfo.Key;
-
-                    if (key == ConsoleKey.Backspace && passBuilder.Length > 0)
+                    var passBuilder = new StringBuilder(); // Using a builder is more efficient than creating a new string object for each character
+                    ConsoleKey key;
+                    //This puts asteriks (*) on the console instead of your text, for security.
+                    do
                     {
-                        Console.Write("\b \b");
-						passBuilder.Remove(passBuilder.Length - 1, 1);
-					}
-                    else if (!char.IsControl(keyInfo.KeyChar))
-                    {
-                        Console.Write("*");
-						passBuilder.Append(keyInfo.KeyChar);
-                    }
-                } while (key != ConsoleKey.Enter);
+                        var keyInfo = Console.ReadKey(intercept: true);
+                        key = keyInfo.Key;
 
-				password = passBuilder.ToString();
+                        if (key == ConsoleKey.Backspace && passBuilder.Length > 0)
+                        {
+                            Console.Write("\b \b");
+                            passBuilder.Remove(passBuilder.Length - 1, 1);
+                        }
+                        else if (!char.IsControl(keyInfo.KeyChar))
+                        {
+                            Console.Write("*");
+                            passBuilder.Append(keyInfo.KeyChar);
+                        }
+                    } while (key != ConsoleKey.Enter);
+
+                    password = passBuilder.ToString();
+                }
+                else
+                {
+                    Console.WriteLine(new String('*', password.Length));
+                }
                 if (String.IsNullOrWhiteSpace(password))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
@@ -198,14 +267,21 @@ namespace PSO2JP_Token_Generator
             Console.ResetColor();
             do
             {
-                Console.WriteLine("Enter your SEGAID OTP (" + OTPCodeTries + " attempt(s) remaining):");
-                otp = Console.ReadLine();
-                if (String.IsNullOrWhiteSpace(otp) || otp.Length != 6)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("You must enter a valid OTP. (6 characters)");
-                    Console.ResetColor();
-                }
+            	Console.WriteLine("Enter your SEGAID OTP (" + OTPCodeTries + " attempt(s) remaining):");
+            	if (otp_token == null)
+            		otp = Console.ReadLine();
+            	else
+            	{
+            		var tfa = new TwoFactorAuthenticator();
+            		otp = tfa.GeneratePINAtInterval(Base32.FromBase32String(otp_token), GetCurrentCounter(DateTime.UtcNow, _epoch, 30), 6);
+            		Console.WriteLine(otp);
+		}
+            	if (String.IsNullOrWhiteSpace(otp) || otp.Length != 6)
+            	{
+            		Console.ForegroundColor = ConsoleColor.Red;
+            		Console.WriteLine("You must enter a valid OTP. (6 characters)");
+            		Console.ResetColor();
+            	}
             } while (String.IsNullOrWhiteSpace(otp) || otp.Length != 6);
             Console.WriteLine();
             OTPCodeTries--;
